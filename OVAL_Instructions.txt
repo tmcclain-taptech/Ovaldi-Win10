@@ -1,0 +1,88 @@
+1. Download the OVAL 1804 trunk from sourceforge
+2. Download Xalan-C 1.11/Xerces-C 3.1 combination binary for VC 10.0 x86. (ftp://mirror.reverse.net/pub/apache/xalan/xalan-c/binaries/)
+	A. Copy contents of 'include' folder into 'src' folder of Oval for both xalan and xerces
+	B. Copy contents of 'bin' folder into 'src/bin/' of Oval. You will need to make this folder in 'src'.
+	C. Copy contents of 'lib' folder into 'src/lib/ of Oval. You will need to make this folder in 'src'.
+3. Download gpg-w32 binaries (https://gnupg.org/ftp/gcrypt/binary/).
+	A. Copy contents of 'include' folder into 'src/libgcrypt'. You will need to make this folder in 'src'.
+4. Download and compile pcre 8.12 and libgcrypt, which has a dependency on libgpg-error, following the instructions below.
+	https://ftp.pcre.org/pub/pcre/
+	https://www.gnupg.org/download/ - Download libgcrypt and libgpg-error tarball
+	A. Using the Visual Studio Command Console, convert the pcre.def and libgcrypr-xx.dll.def into *.lib files.
+	B. Copy those files into 'src/lib/' in Oval.
+	C. Copy the compiled *.dll files into 'src/bin/' in Oval.
+	D. Copy pcre.h into 'src'.
+5. Open the *.vcxproj file in 'project/Win32/VC10/'
+6. Convert the project to the latest Windows SDK and Version.
+7. Build Project
+
+******************PCRE and Libcrypt instructions******************
+D. Build PCRE
+
+		Get source from https://ftp.pcre.org/pub/pcre/.  Just get the
+		latest source archive from that site.  As of this writing, it is pcre-8.12.
+		Extract it to a directory.  Open an MSYS terminal window and cd to the directory
+		you extracted it to.
+
+		Run the configure script as:
+
+			$ ./configure --host=x86_64-w64-mingw32
+
+		Unfortunately, although the regular "make install" will work, you won't get a
+		DLL import library that works.  MSVC doesn't work with mingw's *.dll.a files
+		very well.  I've seen it work with warnings, and also seen it fail.  PCRE's
+		import library as created by MinGW doesn't seem to work.  To create a proper
+		import library, you need to get mingw to create you a *.def file, and then use
+		MSVC's "lib" utility to create the import lib.  Also unfortunately, getting the
+		normal build process to create the *.def files is really ugly.  You would have
+		to hack the 'libtool' script which comes with PCRE, which is what constructs the
+		gcc commandlines to compile and link.  A less ugly way is to modify the
+		makefile. There is a user-contributed target for "pcre.dll" at the bottom.  Add
+		another parameter to the GCC commandline in that target:
+
+			-Wl,--output-def,pcre.def
+
+		The result should look something like:
+
+			pcre.dll: $(DLL_OBJS)
+				$(CC) -shared -o pcre.dll -Wl,"--strip-all" -Wl,"--export-all-symbols"
+			-Wl,--output-def,pcre.def $(DLL_OBJS)
+
+		What I did was run "make install" to get the normal installed directory 
+		structure set up for me, then "make pcre.dll" to run the above target to get
+		another DLL and a *.def file.  Open a MSVC x64 command prompt (start button->
+		All Programs->Microsoft Visual Studio 2008->Visual Studio Tools->
+		Visual Studio Command Prompt), cd to your PCRE source directory, and
+		run:
+
+			lib /machine:x86 /def:pcre.def
+
+		That will generate pcre.lib.  Copy pcre.dll into the 'bin' subdirectory of your
+		pcre install directory, and pcre.lib into the 'lib' subdirectory.
+
+	E. Build libgcrypt
+
+		Libgcrypt downloads are at http://www.gnupg.org/download/.  You need both
+		libgcrypt and libgpg-error.
+
+		Extract libgpg-error to a directory.  Open a linux terminal window and cd to
+		where you extracted it.  Invoke configure as:
+
+			./configure --host=x86_64-w64-mingw32
+
+		Then the usual "make install" will build and install it.  
+
+		Extract libgcrypt to a directory.  Open a linux terminal window and cd to
+		where you extracted it.  Invoke configure as:
+
+			./configure --host=x86_64-w64-mingw32 
+			 --with-gpg-error-prefix=<dir where you installed libgpg-error> --disable-asm
+		 
+		I installed libgpg-error and libgcrypt to the same directory.  I had to disable
+		assembly because many of the tests crashed otherwise.  Everything worked with
+		assembly disabled.  (If you try "make check" yourself, it probably won't work.
+		Other hackery was required to make the tests work, which I won't describe here.)
+
+		Open another Visual Studio Command Prompt and navigate to the location of the *.def
+	
+	
