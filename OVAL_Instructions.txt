@@ -32,3 +32,8 @@ Once this is done, you will be able to successfully compile the project.
 6. Go to Project -> Retarget Solution
 	A. Retarget it to the most recent SDK you have available.
 7. Build Project
+
+Once the project compiles, you will need to copy pcre3.dll, and the xercesc and xalanc .dll files from src/bin into the folder containing the executable.
+Failure to do so will result in error messages stating that the above .dll's cannot be found.
+
+If the error message states something about msvcp100/msvcr100 dll files, you need to install the 2010 C++ Redistributable for x86 from Microsoft.
